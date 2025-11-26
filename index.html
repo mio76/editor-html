@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>🎨 Візуальный HTML редактор</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <style>
+
+:root{
+  --fs: 18px;
+}
+
+html, body {
+  overflow: hidden;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  font-family: sans-serif; 
+  background-color: white;
+  color: black;
+  transition: background-color 0.3s, color 0.3s;
+}
+   #toolbar {      
+      padding: 5px;
+      background: #353B4B;
+      display: flex;
+      gap: 5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    #canvas {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 50px);
+      background: #f0f0f0;
+      overflow: auto;
+    }
+     .element {      
+      position: absolute;
+      box-sizing: border-box;
+      resize: none; /* отключает встроенный уголок */
+      overflow: hidden; /* чтобы не появлялись полосы прокрутки */
+      background: white;
+      padding: 5px;
+      transform-origin: top left;
+    }  
+    
+    #toolbar button {
+      background-color: #4A5166;
+      color: #fff;
+      border: none;
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s ease;
+      align-items: center;
+    }
+    #toolbar button:hover {
+      background-color: #5C637A;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: #f44336;
+      color: white;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      padding: 2px 5px;
+      font-size: 10px;
+      font-weight: bold;
+      border-radius: 50px;
+    }
+
+    #canvas {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 50px);
+  background-image: linear-gradient(to right, #777 1px, transparent 1px),
+                    linear-gradient(to bottom, #777 1px, transparent 1px);
+  background-size: 10px 10px; /* размер клетки */
+  overflow: auto;
+  background-color: transparent;
+}
+
+.resizer.bottom-right {
+  position: absolute;
+  width: 2em;
+  height: 2em;
+  right: -5px;
+  bottom: -5px;
+  background: #353B4B;
+  cursor: nwse-resize;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  z-index: 10;
+}
+
+#sizeControls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  background: #f5f5f5;
+  padding: 5px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+#sizeControls input[type="number"] {
+  width: 35px;
+  font-size: 12px;
+  padding: 2px;
+}
+
+#sizeControls button {
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.size-separator {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+ .dark-mode {
+      background-color: black;
+      color: white;
+    }
+
+    #themeToggle {
+      font-size: var(--fs);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #themeToggle:hover {
+     background-color: #5C637A;
+    }
+
+    body.dark-mode .element {
+  background-color: black;
+  color: white;
+}
+
+.small-input {
+  width: 40px;
+  height: 25px;
+  font-size: 16px;
+}
+
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <input type="file" id="fileInput" accept=".html" style="display:none" onchange="openHTML(event)">
+  <button title="Відкрити HTML" style="font-size: var(--fs);" onclick="document.getElementById('fileInput').click()">📂</button>
+
+  <button title="Додати об'єкт" onclick="createEmptyText()">➕ Об'єкт</button>
+
+  <input type="file" id="textUpload" accept=".txt" style="display:none" onchange="insertTextFile(event)">
+  <button title="Відкрити файл .txt" onclick="document.getElementById('textUpload').click()">📝 TXT</button>
+  
+  <div id="formatBar" style="padding:5px; align-items: center; border-radius:4px; background:#e0e0e0; display:flex; gap:5px;">
+  <select id="fontSize" class="small-input">
+    <option value="1em">1em</option>
+    <option value="1.1em">1.1em</option>
+    <option value="1.2em">1.2em</option>
+    <option value="12px">12px</option>
+    <option value="14px">14px</option>
+    <option value="16px" selected>16px</option>
+    <option value="18px">18px</option>
+    <option value="19px">19px</option>
+    <option value="20px">20px</option>
+    <option value="22px">22px</option>
+    <option value="24px">24px</option>
+    <option value="28px">28px</option>
+    <option value="32px">32px</option>
+    <option value="40px">40px</option>
+    <option value="48px">48px</option>
+  </select>
+
+  <select title="Вирівняти текст" id="textAlign" class="small-input">
+  <option value="left">⬅️</option>
+  <option value="center">↔️</option>
+  <option value="right">➡️</option>
+  <option value="justify">⏹️</option>
+</select>
+
+<select id="verticalAlign" class="small-input">
+<option value="flex-start">🔼</option>
+<option value="center">⏺️</option>
+<option value="flex-end">🔽</option>
+</select>
+
+  <input type="color" id="fontColor" style="width: 30px;" value="#000000">
+
+  <button onclick="toggleStyle('fontWeight', 'bold', 'normal');">B</button>
+  <button onclick="toggleStyle('fontStyle', 'italic', 'normal');">i</button>
+  <button title="Виділіть текст, щоб додати посилання" onclick="underlineWithLink()">U</button>
+</div>
+
+<button title="Клонувати" style="font-size: var(--fs)" onclick="duplicateSelected()">🐑</button>
+
+<div id="sizeControls">
+  <input type="number" id="blockWidth" min="10" step="10">
+  <span class="size-separator">×</span>
+  <input type="number" id="blockHeight" min="10" step="10">
+  <button onclick="applySize()">📐</button>
+</div>
+
+<input type="file" id="imgUpload" accept="image/*" style="display:none" onchange="insertImage(event)">
+<button onclick="document.getElementById('imgUpload').click()">🏞️ Фото</button>
+
+<button onclick="toggleStylePanel()">🎨 Редагувати</button>
+
+<div id="stylePanel" style="display:none; font-size: 14px; border-radius: 6px; position:fixed; top:78px; right:22px; background:#353B4B; color: white; padding:10px; z-index:1000;">
+<br>  
+<label>Колір фону: 1 <input type="color" id="bgColor1" style="width: 78px; height: 25px;"></label><br>
+<label>Колір фону: 2 <input type="color" id="bgColor2" style="width: 78px; height: 25px;"></label><br>
+<label><input type="checkbox" id="transparentBg">Прозорий фон</label><br>
+
+<label>Кут градієнта (°): <input type="number" id="gradientAngle" min="0" max="360" style="width: 50px;"></label><br>
+  <label>Закруглення (px):   <input style="width: 46px;" type="number" id="radius" min="0" max="100"></label><br>
+  <label>Внутрішні відступи: <input style="width: 33px;" type="number" id="padding" min="0" max="100"></label><br>
+  <label>Рамка:
+    <select id="borderStyle" style="width: 122px; height: 22px;">
+      <option value="">Немає</option>
+      <option value="1px solid black">Тонка чорна</option>
+      <option value="2px dashed gray">Пунктирна сіра</option>
+      <option value="3px double blue">Подвійна синя</option>
+      <option value="3px solid #FFDA00">Товста жовта</option>
+      <option value="2px solid white">Середня біла</option>
+    </select>
+  </label>
+<br>
+  <label>Тінь:
+  <select id="boxShadow" style="width: 136px; height: 22px;">
+    <option value="">Немає</option>
+    <option value="2px 2px 5px rgba(0,0,0,0.3)">М’яка сіра</option>
+    <option value="4px 4px 10px rgba(0,0,0,0.5)">Середня темна</option>
+    <option value="0 0 10px #FFDA00">Світіння жовте</option>
+    <option value="inset 3px 3px 5px rgba(0,0,0,0.4)">Внутрішня тінь</option>
+  </select>
+</label><br>
+<label>Колір при наведенні:
+  <input type="color" id="hoverColor" style="width: 33px; height: 25px;">
+</label><br>
+
+<hr style="border: none; height: 2px; background: linear-gradient(to right, #F704FE, #00DBDE);">
+    
+  <button onclick="applyStyle()" style="width: 170px; text-align: center;">Застосувати стиль</button>
+</div>  
+  <button onclick="saveAsHTML()">💾 Зберегти</button>
+  
+  <button title="Змінити тему" id="themeToggle" onclick="toggleTheme()">🌙</button>
+</div>
+
+<div id="canvas"></div>
+
+<script>
+/////////////////////////////// Редактор
+function toggleStylePanel() {
+  if (!selected) {
+    alert("Выберите элемент для редактирования.");
+    return;
+  }
+
+  const bg = selected.style.background || selected.style.backgroundColor || '#ffffff';
+
+  // Проверка на градиент
+  if (bg.includes('linear-gradient')) {
+    const match = bg.match(/linear-gradient\((\d+)deg,\s*(#[0-9a-fA-F]{6}),\s*(#[0-9a-fA-F]{6})\)/);
+    if (match) {
+      document.getElementById('gradientAngle').value = match[1];
+      document.getElementById('bgColor1').value = match[2];
+      document.getElementById('bgColor2').value = match[3];
+    }
+  } else {
+    document.getElementById('bgColor1').value = rgbToHex(selected.style.backgroundColor || '#ffffff');
+    document.getElementById('bgColor2').value = '#ffffff';
+    document.getElementById('gradientAngle').value = 180;
+  }
+
+  document.getElementById('radius').value = parseInt(selected.style.borderRadius) || 0;
+  document.getElementById('padding').value = parseInt(selected.style.padding) || 0;
+  document.getElementById('borderStyle').value = selected.style.border || '';
+
+  // Восстановление hover-цвета
+  document.getElementById('hoverColor').value = selected.dataset.hoverColor || '#ffffff';
+
+  document.getElementById('stylePanel').style.display = 'block';
+}
+
+function applyStyle() {
+  if (!selected) return;
+
+  const isTransparent = document.getElementById('transparentBg').checked;
+  const color1 = document.getElementById('bgColor1').value;
+  const color2 = document.getElementById('bgColor2').value;
+  const angle = document.getElementById('gradientAngle').value;
+  const radius = document.getElementById('radius').value;
+  const padding = document.getElementById('padding').value;
+  const border = document.getElementById('borderStyle').value;
+  const shadow = document.getElementById('boxShadow').value;
+  const hoverColor = document.getElementById('hoverColor').value;
+
+  if (isTransparent) {
+    selected.style.background = 'transparent';
+  } else if (color2 && color2 !== '#ffffff') {
+    selected.style.background = `linear-gradient(${angle}deg, ${color1}, ${color2})`;
+  } else {
+    selected.style.background = color1;
+  }
+
+  selected.style.borderRadius = radius + 'px';
+  selected.style.padding = padding + 'px';
+  selected.style.border = border;
+  selected.style.boxShadow = shadow || 'none';
+  selected.style.overflow = 'hidden';
+
+  // Применение hover-цвета только если выбран
+  if (hoverColor && hoverColor !== '#ffffff') {
+    const className = 'custom-hover-' + Date.now();
+
+    if (selected.dataset.hoverClass) {
+      removeHoverStyle(selected.dataset.hoverClass);
+      selected.classList.remove(selected.dataset.hoverClass);
+    }
+
+    selected.classList.add(className);
+    selected.dataset.hoverClass = className;
+    selected.dataset.hoverColor = hoverColor;
+    addHoverStyle(className, hoverColor);
+  } else {
+    // Если hoverColor не выбран — удаляем старый hover-стиль
+    if (selected.dataset.hoverClass) {
+      removeHoverStyle(selected.dataset.hoverClass);
+      selected.classList.remove(selected.dataset.hoverClass);
+      delete selected.dataset.hoverClass;
+      delete selected.dataset.hoverColor;
+    }
+  }
+
+  document.getElementById('stylePanel').style.display = 'none';
+}
+
+function rgbToHex(rgb) {
+  if (!rgb || rgb.indexOf('rgb') === -1) return '#ffffff';
+  const [r, g, b] = rgb.match(/\d+/g).map(Number);
+  return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+function addHoverStyle(className, color) {
+  const style = document.createElement('style');
+  style.id = 'hover-style-' + className;
+  style.innerHTML = `
+    .${className}:hover {
+      background: ${color} !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function removeHoverStyle(className) {
+  const style = document.getElementById('hover-style-' + className);
+  if (style) style.remove();
+}
+ 
+//////////////////// Кнопка для тега 💩
+  function underlineWithLink() {
+  if (selected) {
+    const content = selected.querySelector('[contenteditable]');
+    if (content) {
+      const url = prompt("Введите ссылку (URL):");
+      if (url) {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const selectedText = range.toString();
+
+          // Создаем тег <a> с подчеркиванием
+          const link = document.createElement("a");
+          link.href = url;
+          link.textContent = selectedText;
+          link.style.textDecoration = "underline";
+          link.target = "_blank"; // Открывать в новой вкладке
+
+          // Заменяем выделенный текст на ссылку
+          range.deleteContents();
+          range.insertNode(link);
+        }
+      }
+    }
+  }
+}
+
+  // Клонування
+function duplicateSelected() {
+  if (!selected) return;
+
+  const clone = selected.cloneNode(true);
+  clone.classList.remove('selected'); // убираем выделение
+
+  // Смещение позиции, чтобы клон не накладывался
+  const offset = 20;
+  const left = parseInt(selected.style.left || 0) + offset;
+  const top = parseInt(selected.style.top || 0) + offset;
+  clone.style.left = left + 'px';
+  clone.style.top = top + 'px';
+
+  // Удаляем старую кнопку удаления и добавляем новую
+  const oldDelete = clone.querySelector('.delete-btn');
+  if (oldDelete) oldDelete.remove();
+  makeDraggable(clone); // повторно делаем клон перетаскиваемым
+
+  document.getElementById('canvas').appendChild(clone);
+}
+
+  // Зміна теми
+  const button = document.getElementById('themeToggle');
+    function toggleTheme() {
+      document.body.classList.toggle('dark-mode');
+      const isDark = document.body.classList.contains('dark-mode');
+      button.textContent = isDark ? '☀️' : '🌙';
+    }
+
+const GRID_SIZE = 10;
+let selected = null;
+
+function createDeleteButton(el) {
+  const btn = document.createElement('button');
+  btn.textContent = 'X';
+  btn.className = 'delete-btn';
+  btn.setAttribute('contenteditable', 'false');
+  btn.onclick = () => {
+    el.remove();
+    if (selected === el) selected = null;
+  };
+  return btn;
+}
+
+function updateSizeInputs(el) {
+  document.getElementById('blockWidth').value = el.offsetWidth;
+  document.getElementById('blockHeight').value = el.offsetHeight;
+}
+
+function applySize() {
+  if (!selected) return;
+  const width = Math.max(10, parseInt(document.getElementById('blockWidth').value));
+  const height = Math.max(10, parseInt(document.getElementById('blockHeight').value));
+  selected.style.width = width + 'px';
+  selected.style.height = height + 'px';
+}
+
+function makeDraggable(el) {
+  let isDragging = false;
+  let isResizing = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  el.appendChild(createDeleteButton(el));
+
+  const resizer = document.createElement('div');
+  resizer.className = 'resizer bottom-right';
+  resizer.style.touchAction = 'none'; // предотвращает нежелательные жесты
+  el.appendChild(resizer);
+
+  let startX, startY, startWidth, startHeight;
+
+  // Обработка начала изменения размера (мышь)
+  resizer.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = el.offsetWidth;
+    startHeight = el.offsetHeight;
+    selected = el;
+    updateSizeInputs(el);
+  });
+
+  // Обработка начала изменения размера (сенсор)
+  resizer.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    const touch = e.touches[0];
+    isResizing = true;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startWidth = el.offsetWidth;
+    startHeight = el.offsetHeight;
+    selected = el;
+    updateSizeInputs(el);
+  });
+
+  // Обработка перемещения мышью
+  document.addEventListener('mousemove', e => {
+    if (isResizing) {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      resizeElement(dx, dy);
+    } else {
+      dragTo(e.clientX, e.clientY);
+    }
+  });
+
+  // Обработка перемещения сенсором
+  document.addEventListener('touchmove', e => {
+    const touch = e.touches[0];
+    if (isResizing) {
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      resizeElement(dx, dy);
+    } else {
+      dragTo(touch.clientX, touch.clientY);
+    }
+  }, { passive: false });
+
+  // Завершение действия
+  document.addEventListener('mouseup', endHandler);
+  document.addEventListener('touchend', endHandler);
+
+  function resizeElement(dx, dy) {
+    const newWidth = Math.max(10, Math.round((startWidth + dx) / GRID_SIZE) * GRID_SIZE);
+    const newHeight = Math.max(10, Math.round((startHeight + dy) / GRID_SIZE) * GRID_SIZE);
+    el.style.width = newWidth + 'px';
+    el.style.height = newHeight + 'px';
+    updateSizeInputs(el);
+  }
+
+  function startDrag(x, y) {
+    isDragging = true;
+    offsetX = x - el.offsetLeft;
+    offsetY = y - el.offsetTop;
+    selected?.classList.remove('selected');
+    selected = el;
+    el.classList.add('selected');
+    updateSizeInputs(el);
+  }
+
+  function dragTo(x, y) {
+    if (!isDragging || !selected) return;
+    const newX = Math.round((x - offsetX) / GRID_SIZE) * GRID_SIZE;
+    const newY = Math.round((y - offsetY) / GRID_SIZE) * GRID_SIZE;
+    selected.style.left = newX + 'px';
+    selected.style.top = newY + 'px';
+  }
+
+  function snapToGrid(el) {
+    el.style.width = Math.round(el.offsetWidth / GRID_SIZE) * GRID_SIZE + 'px';
+    el.style.height = Math.round(el.offsetHeight / GRID_SIZE) * GRID_SIZE + 'px';
+  }
+
+  el.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+  el.addEventListener('touchstart', e => {
+    const touch = e.touches[0];
+    startDrag(touch.clientX, touch.clientY);
+  });
+
+  function endHandler() {
+    if (isDragging && selected && !isResizing) {
+      snapToGrid(selected);
+    }
+    isDragging = false;
+    isResizing = false;
+  }
+}
+
+function createTextElement(contentText = '') {
+  const el = document.createElement('div');
+  el.className = 'element';
+  el.style.left = '40%';
+  el.style.top = '100px';
+  el.style.width = '240px';
+  el.style.height = '60px';
+
+  // Проверка текущей темы
+  const isDark = document.body.classList.contains('dark-mode');  
+
+  const content = document.createElement('div');
+  content.setAttribute('contenteditable', 'true');
+  content.style.minHeight = '10px';
+  content.style.outline = 'none';
+  content.style.width = '100%';
+  content.style.height = '100%';
+  content.innerText = contentText;
+
+  el.appendChild(content);
+  makeDraggable(el);
+  document.getElementById('canvas').appendChild(el);
+  setTimeout(() => content.focus(), 0);
+}
+
+function insertTextFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    createTextElement(e.target.result);
+    document.getElementById('textUpload').value = '';
+  };
+  reader.readAsText(file);
+}
+
+function createEmptyText() {
+  createTextElement('');
+}
+
+function insertImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const el = document.createElement('div');
+    el.className = 'element';
+    el.style.left = '100px';
+    el.style.top = '100px';
+    el.style.width = '200px';
+    el.innerHTML = `<img src="${e.target.result}" style="width:100%;">`;
+    makeDraggable(el);
+    document.getElementById('canvas').appendChild(el);
+    document.getElementById('imgUpload').value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+// Универсальная функция для получения родительского элемента выделения
+function getEditableParent() {
+  const selection = window.getSelection();
+  if (!selection.rangeCount || selection.isCollapsed) return null;
+  const range = selection.getRangeAt(0);
+  const parent = range.commonAncestorContainer.nodeType === 1
+    ? range.commonAncestorContainer
+    : range.commonAncestorContainer.parentElement;
+  return parent?.isContentEditable ? parent : null;
+}
+
+// Универсальная функция для оборачивания выделения в <span> с заданными стилями
+function applyStyleToSelection(styleObj) {
+  const selection = window.getSelection();
+  if (!selection.rangeCount || selection.isCollapsed) return;
+
+  const range = selection.getRangeAt(0);
+  const commonAncestor = range.commonAncestorContainer;
+
+  // Если выделение уже внутри одного <span>, просто меняем стиль
+  if (
+    commonAncestor.nodeType === Node.ELEMENT_NODE &&
+    commonAncestor.tagName === 'SPAN'
+  ) {
+    Object.assign(commonAncestor.style, styleObj);
+    return;
+  }
+
+  // Проверяем, если родитель — <span>, и выделение полностью внутри него
+  const parentSpan = selection.anchorNode?.parentElement;
+  if (parentSpan?.tagName === 'SPAN' && parentSpan.contains(selection.focusNode)) {
+    Object.assign(parentSpan.style, styleObj);
+    return;
+  }
+
+  // Иначе создаем новый <span> и очищаем вложенные стили
+  const content = range.extractContents();
+  const cleaned = document.createElement('span');
+  cleaned.textContent = content.textContent;
+  Object.assign(cleaned.style, styleObj);
+
+  range.insertNode(cleaned);
+  selection.removeAllRanges();
+  const newRange = document.createRange();
+  newRange.selectNodeContents(cleaned);
+  selection.addRange(newRange);
+}
+
+// Изменение размера текста
+document.getElementById('fontSize').addEventListener('change', function () {
+  applyStyleToSelection({ fontSize: this.value });
+});
+
+// Горизонтальное выравнивание
+document.getElementById('textAlign').addEventListener('change', function () {
+  const parent = getEditableParent();
+  if (parent) parent.style.textAlign = this.value;
+});
+
+// Вертикальное выравнивание
+function getCurrentEditableBlock() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  let node = sel.anchorNode;
+  if (node.nodeType !== 1) node = node.parentElement;
+  // ищем ближайший блок с contenteditable
+  return node.closest('[contenteditable="true"]');
+}
+
+document.getElementById('verticalAlign').addEventListener('change', function () {
+  const editable = getCurrentEditableBlock();
+  if (editable) {
+    editable.style.display = 'flex';
+    editable.style.flexDirection = 'column';
+    editable.style.justifyContent = this.value;
+  }
+});
+
+// Изменение цвета текста
+document.getElementById('fontColor').addEventListener('input', function () {
+  applyStyleToSelection({ color: this.value });
+
+  // Применение цвета ко всем ссылкам внутри contenteditable
+  const content = document.querySelector('[contenteditable]');
+  if (content) {
+    content.querySelectorAll('a').forEach(link => {
+      link.style.color = this.value;
+      link.style.textDecoration = 'none';
+    });
+  }
+});
+
+// Переключение стиля (жирный, курсив и т.д.)
+function toggleStyle(styleProp, activeValue, inactiveValue) {
+  const selection = window.getSelection();
+  if (!selection.rangeCount || selection.isCollapsed) return;
+
+  const range = selection.getRangeAt(0);
+  const parent = selection.anchorNode.parentElement;
+  const current = parent.style[styleProp];
+
+  const span = document.createElement('span');
+  span.style[styleProp] = current === activeValue ? inactiveValue : activeValue;
+  range.surroundContents(span);
+}
+
+////////////// ВІДКРИТТЯ
+function openHTML(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(e.target.result, 'text/html');
+    const bodyContent = doc.body;
+
+    const canvas = document.getElementById('canvas');
+    canvas.innerHTML = '';
+
+    function makeTextEditable(node) {
+  node.querySelectorAll('*').forEach(child => {
+    const isTextOnly = child.childNodes.length === 1 && child.childNodes[0].nodeType === Node.TEXT_NODE;
+    if (isTextOnly) {
+      child.setAttribute('contenteditable', 'true');
+    }
+  });
+
+  // Если сам корневой элемент — текстовый, тоже делаем редактируемым
+  const isRootTextOnly = node.childNodes.length === 1 && node.childNodes[0].nodeType === Node.TEXT_NODE;
+  if (isRootTextOnly) {
+    node.setAttribute('contenteditable', 'true');
+  }
+}
+
+    // Рекурсивная обработка всех элементов
+    function processElement(el) {
+  const clone = el.cloneNode(true);
+  clone.classList.add('element');
+
+  // Рекурсивно ищем текстовые узлы и делаем их редактируемыми
+  makeTextEditable(clone);
+
+  // Позиционирование
+  clone.style.position = 'absolute';
+  clone.style.left = el.style.left || '100px';
+  clone.style.top = el.style.top || '100px';
+  clone.style.width = el.style.width || '';
+  clone.style.height = el.style.height || '';
+
+  makeDraggable(clone);
+  canvas.appendChild(clone);
+}
+
+    // Обрабатываем все элементы внутри body
+    [...bodyContent.children].forEach(el => {
+      const tag = el.tagName.toLowerCase();
+      if (['div', 'p', 'span', 'section', 'article', 'header', 'footer'].includes(tag)) {
+        processElement(el);
+      }
+    });
+  };
+
+  // Можно добавить выбор кодировки, если нужно
+  reader.readAsText(file, 'utf-8');
+}
+
+// Сохранение в HTML
+async function saveAsHTML() {
+  const canvasRoot = document.getElementById('canvas');
+  const elements = canvasRoot.querySelectorAll('.element');
+  let htmlContent = [];
+  let hoverStyles = [];
+
+  // Временное скрытие всех .delete-btn
+  const hiddenButtons = [];
+  elements.forEach(el => {
+    const btn = el.querySelector('.delete-btn');
+    if (btn) {
+      hiddenButtons.push(btn);
+      btn.style.display = 'none';
+    }
+  });
+
+  // Фильтрация и сборка стилей (бережная)
+  function buildStyle(entries, display = '') {
+    return entries
+      .filter(([key, value]) => {
+        if (value == null || value === '') return false;
+        if (key === 'vertical-align' && value === 'baseline' && ['block', 'flex', 'grid'].includes(display)) return false;
+        return true;
+      })
+      .map(([key, value]) => `${key}:${value}`)
+      .join(';');
+  }
+
+  // Конвертация IMG в dataURL (если возможно)
+  function toDataURL(img) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      return c.toDataURL('image/png');
+    } catch (e) {
+      // Если CORS/tainted canvas — оставляем исходный src
+      return img.src;
+    }
+  }
+
+  // Применение вычисленных стилей на узлы contenteditable
+  function applyComputedTextStyles(node) {
+    const computed = window.getComputedStyle(node);
+    const display = computed.display;
+    const styleEntries = [
+      ['color', computed.color],
+      ['background', computed.background],
+      ['padding', computed.padding],
+      ['border-radius', computed.borderRadius],
+      ['border', computed.border],
+      ['text-align', computed.textAlign],
+      ['vertical-align', computed.verticalAlign],
+      ['font-family', computed.fontFamily],
+      ['font-size', computed.fontSize],
+      ['font-weight', computed.fontWeight],
+      ['font-style', computed.fontStyle],
+      ['line-height', computed.lineHeight],
+      ['letter-spacing', computed.letterSpacing],
+      ['text-transform', computed.textTransform],
+      // Дополнительно для надёжности:
+      ['white-space', computed.whiteSpace],
+      ['word-break', computed.wordBreak],
+    ];
+    const existingInline = node.getAttribute('style') || '';
+    const fullStyle = `${existingInline ? existingInline + ';' : ''}${buildStyle(styleEntries, display)}`;
+    node.setAttribute('style', fullStyle);
+  }
+
+  elements.forEach(el => {
+    const computedEl = window.getComputedStyle(el);
+
+    if (computedEl.display === 'none' || el.offsetWidth === 0 || el.offsetHeight === 0) return;
+
+    // Клонируем элемент, чтобы безопасно модифицировать содержимое
+    const clone = el.cloneNode(true);
+
+    // Убираем delete-btn из клона
+    clone.querySelectorAll('.delete-btn').forEach(btn => btn.remove());
+
+    // Конвертация всех IMG в base64 (если возможно)
+    const imgs = clone.querySelectorAll('img');
+    imgs.forEach(img => {
+      const inlineStyle = img.getAttribute('style') || '';
+      const dataURL = toDataURL(img);
+      img.setAttribute('src', dataURL);
+      if (inlineStyle) img.setAttribute('style', inlineStyle);
+    });
+
+    // Обработка всех ссылок <a>
+    const links = clone.querySelectorAll('a');
+    links.forEach(a => {
+      const rawHref = a.getAttribute('href');
+      if (!rawHref) return;
+      // Нормализуем относительные ссылки в абсолютные (важно для открытия локального файла)
+      try {
+        const abs = new URL(rawHref, location.href).href;
+        a.setAttribute('href', abs);
+      } catch {
+        a.setAttribute('href', rawHref);
+      }
+      // Открывать в новой вкладке и безопасно
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    // Применяем вычисленные стили к контенту с contenteditable и снимаем атрибут
+    const editableNodes = clone.querySelectorAll('[contenteditable]');
+    editableNodes.forEach(node => {
+      applyComputedTextStyles(node);
+      node.removeAttribute('contenteditable'); // ключевая строка для кликабельности ссылок
+    });
+
+    // Сборка стилей контейнера элемента
+    const elStyleEntries = [
+      ['position', 'absolute'],
+      ['left', el.style.left],
+      ['top', el.style.top],
+      ['width', `${el.offsetWidth}px`],
+      ['height', `${el.offsetHeight}px`],
+      ['color', computedEl.color],
+      ['background', computedEl.background],
+      ['padding', computedEl.padding],
+      ['border-radius', computedEl.borderRadius],
+      ['border', computedEl.border],
+      ['vertical-align', computedEl.verticalAlign],
+      ['box-shadow', computedEl.boxShadow || ''],
+      ['overflow', 'hidden'],
+    ];
+    const elStyle = buildStyle(elStyleEntries, computedEl.display) || 'position:absolute';
+
+    // Hover-стили
+    const hoverClass = el.dataset.hoverClass;
+    const hoverColor = el.dataset.hoverColor;
+    let classAttr = '';
+    if (hoverClass && /^#[0-9a-fA-F]{6}$/.test(hoverColor || '')) {
+      hoverStyles.push(`.${hoverClass}:hover { background: ${hoverColor} !important; }`);
+      classAttr = ` class="${hoverClass}"`;
+    }
+
+    // Добавляем элемент в финальный HTML
+    htmlContent.push(`<div${classAttr} style="${elStyle}">${clone.innerHTML}</div>`);
+  });
+
+  const bodyStyle = window.getComputedStyle(document.body);
+  const bodyColor = bodyStyle.color;
+  const bodyBackground = bodyStyle.backgroundColor;
+
+  const fullHTML = `<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Сохранённая сторінка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      background-color: ${bodyBackground};
+      color: ${bodyColor};
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+    }
+    ${hoverStyles.join('\n')}
+  </style>
+</head>
+<body>
+${htmlContent.join('\n')}
+</body>
+</html>`;
+
+  if (fullHTML.trim()) {
+    const blob = new Blob([fullHTML], { type: 'text/html' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'index.html';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Возврат отображения кнопок
+  hiddenButtons.forEach(btn => {
+    btn.style.display = '';
+  });
+}
+
+/*Установка как программа*/
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/editor-html/sw.js')
+    .then(() => console.log('SW зареєстрований'))
+    .catch(error => console.error('Помилка реєстрації SW:', error));
+}
+</script>
+
+</body>
+</html>
